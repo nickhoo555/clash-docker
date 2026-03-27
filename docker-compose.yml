@@ -1,0 +1,38 @@
+services:
+  mihomo:
+    image: metacubex/mihomo:latest
+    container_name: mihomo
+    restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - /config/render-config.sh
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MIHOMO_SECRET: ${MIHOMO_SECRET}
+      SUBSCRIPTION_1_URL: ${SUBSCRIPTION_1_URL:-}
+      SUBSCRIPTION_2_URL: ${SUBSCRIPTION_2_URL:-}
+      SUBSCRIPTION_3_URL: ${SUBSCRIPTION_3_URL:-}
+    volumes:
+      - ./config/mihomo:/config
+    ports:
+      - "${MIXED_PORT:-7890}:7890"
+      - "${CONTROLLER_PORT:-9090}:9090"
+    networks:
+      - clash_net
+
+  zashboard:
+    image: ghcr.io/zephyruso/zashboard:latest
+    container_name: zashboard
+    restart: unless-stopped
+    depends_on:
+      - mihomo
+    volumes:
+      - ./config/zashboard/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "${DASHBOARD_PORT:-8080}:80"
+    networks:
+      - clash_net
+
+networks:
+  clash_net:
+    driver: bridge

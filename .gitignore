@@ -1,0 +1,8 @@
+.env
+config/mihomo/*.db
+config/mihomo/*.mmdb
+config/mihomo/*.metadb
+config/mihomo/cache.db
+config/mihomo/providers/
+config/mihomo/profiles/
+config/mihomo/ui/

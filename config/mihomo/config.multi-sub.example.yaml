@@ -1,0 +1,107 @@
+# Example: multiple subscriptions via proxy-providers.
+# The running stack now renders config.yaml from environment variables.
+# Keep this file as a reference only.
+
+mixed-port: 7890
+allow-lan: true
+bind-address: "*"
+mode: rule
+log-level: info
+ipv6: true
+
+external-controller: 0.0.0.0:9090
+external-controller-cors:
+  allow-origins:
+    - "*"
+  allow-private-network: true
+secret: ""
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+  fallback:
+    - tls://1.0.0.1:853
+    - tls://8.8.4.4:853
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+
+proxies:
+  - name: MOCK
+    type: http
+    server: 127.0.0.1
+    port: 65535
+
+proxy-providers:
+  sub1:
+    type: http
+    url: "https://example.com/sub-a"
+    path: ./providers/sub1.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 600
+
+  sub2:
+    type: http
+    url: "https://example.com/sub-b"
+    path: ./providers/sub2.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 600
+
+  sub3:
+    type: http
+    url: "https://example.com/sub-c"
+    path: ./providers/sub3.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 600
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies:
+      - AUTO
+      - FALLBACK
+      - MOCK
+      - DIRECT
+    use:
+      - sub1
+      - sub2
+      - sub3
+
+  - name: AUTO
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - sub1
+      - sub2
+      - sub3
+
+  - name: FALLBACK
+    type: fallback
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    use:
+      - sub1
+      - sub2
+      - sub3
+
+rules:
+  - MATCH,PROXY

@@ -38,6 +38,29 @@ docker compose down
 http://127.0.0.1:8080/#/setup?hostname=127.0.0.1&port=19090&secret=change-this-secret&disableUpgradeCore=1
 ```
 
+## 局域网访问 zashboard
+
+zashboard 一般是给局域网里的手机、平板或其他电脑访问的。
+
+如果你要让局域网客户端访问面板：
+
+1. 用宿主机的局域网 IP 打开面板，而不是 `127.0.0.1`。
+2. zashboard 初始化参数里的 `hostname` 也要填写宿主机的局域网 IP，因为面板会直接连接 mihomo 控制口。
+3. 宿主机防火墙或安全组需要放行 `8080` 和 `19090`。
+4. `MIHOMO_SECRET` 不要继续使用默认值，至少改成一个随机长字符串。
+
+例如宿主机 IP 是 `192.168.31.10` 时：
+
+```text
+http://192.168.31.10:8080/#/setup?hostname=192.168.31.10&port=19090&secret=your-strong-secret&disableUpgradeCore=1
+```
+
+补充说明：
+
+1. 当前方案里 zashboard 不是通过反代访问 mihomo，而是浏览器直接请求 `19090`。
+2. 这意味着只开放 `8080` 还不够，局域网客户端还必须能访问 `19090`。
+3. 如果你只想给局域网开放面板、不想直接暴露控制口，就需要额外加一层反向代理或防火墙规则。
+
 ## 注意事项
 
 1. 如果控制口需要暴露到本机之外，先修改 `.env` 里的 `MIHOMO_SECRET`。

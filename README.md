@@ -37,6 +37,29 @@ Recommended zashboard setup URL:
 http://127.0.0.1:8080/#/setup?hostname=127.0.0.1&port=19090&secret=change-this-secret&disableUpgradeCore=1
 ```
 
+## LAN access for zashboard
+
+Zashboard is commonly accessed from other LAN clients such as phones, tablets, or laptops.
+
+If you want LAN clients to use the dashboard:
+
+1. Open the dashboard with the host machine's LAN IP, not `127.0.0.1`.
+2. Set the zashboard `hostname` parameter to the same LAN IP, because the browser connects to the mihomo controller directly.
+3. Make sure the host firewall or security group allows `8080` and `19090`.
+4. Replace the default `MIHOMO_SECRET` with a strong random value.
+
+Example for a host LAN IP of `192.168.31.10`:
+
+```text
+http://192.168.31.10:8080/#/setup?hostname=192.168.31.10&port=19090&secret=your-strong-secret&disableUpgradeCore=1
+```
+
+Notes:
+
+1. In this stack, zashboard does not use a reverse proxy to reach mihomo; the browser calls port `19090` directly.
+2. Because of that, exposing only `8080` is not enough for LAN clients; they must also be able to reach `19090`.
+3. If you want the dashboard reachable on the LAN without exposing the controller port directly, add a reverse proxy layer or restrict access with firewall rules.
+
 ## Important
 
 1. Change `MIHOMO_SECRET` in `.env` before exposing the API beyond localhost.

@@ -67,6 +67,8 @@ Notes:
 3. To use real nodes, set `SUBSCRIPTION_1_URL` to `SUBSCRIPTION_3_URL` in `.env` and recreate the `mihomo` container.
 4. If you change `CONTROLLER_PORT`, `DASHBOARD_PORT`, or `MIHOMO_SECRET`, update the zashboard setup URL accordingly.
 5. Mihomo is already configured with permissive CORS for the dashboard, so zashboard can connect directly to the published API port.
+6. Subscription providers are rendered with `proxy: DIRECT` so their initial download does not deadlock on the default `MATCH,PROXY` rule before any nodes exist.
+7. Direct outbound DNS lookups explicitly use the container system resolver, while the default DNS upstreams are set to `doh.pub` and `dns.alidns.com` instead of Cloudflare/Google endpoints that may be unreachable in some networks.
 
 ## Validate config
 

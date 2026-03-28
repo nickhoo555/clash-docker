@@ -98,6 +98,8 @@ SUBSCRIPTION_3_URL=https://example.com/sub-3
 2. 容器启动时会自动生成 `proxy-providers:`。
 3. 每个订阅都会使用单独的缓存文件路径，比如 `./providers/sub1.yaml`。
 4. 生成后的策略组会自动把多个 provider 合并到 `PROXY`、`AUTO`、`FALLBACK`。
+5. 订阅更新会强制走 `DIRECT`，避免 mihomo 启动时因为 provider 尚未拉取完成、却又先命中 `MATCH,PROXY` 规则而卡死。
+6. `DIRECT` 出口的域名解析会显式走 `system`，同时默认 DNS 上游改成更容易直连的 `doh.pub` 和 `dns.alidns.com`，避免容器里系统 DNS 可用、但 mihomo 自己的 DoH/DoT 上游不可达。
 
 示例文件已经放在 [config/mihomo/config.multi-sub.example.yaml](config/mihomo/config.multi-sub.example.yaml)。
 
@@ -110,12 +112,14 @@ proxy-providers:
     url: "https://example.com/sub-a"
     path: ./providers/sub-a.yaml
     interval: 3600
+    proxy: DIRECT
 
   sub-b:
     type: http
     url: "https://example.com/sub-b"
     path: ./providers/sub-b.yaml
     interval: 3600
+    proxy: DIRECT
 
 proxy-groups:
   - name: PROXY
@@ -140,9 +144,11 @@ proxy-groups:
 
 1. `SUBSCRIPTION_1_URL` 到 `SUBSCRIPTION_3_URL` 填你的订阅链接。
 2. `path` 是 mihomo 在容器内缓存订阅内容的本地文件路径，已经自动分配，必须一订阅一文件。
-3. `use` 表示把这些订阅里的节点全部并入当前策略组。
-4. `AUTO` 适合自动测速选节点，`PROXY` 适合手动切换。
-5. 如果三个不够用，继续按相同模式扩展 [config/mihomo/render-config.sh](config/mihomo/render-config.sh) 就行。
+3. `proxy: DIRECT` 用来保证订阅拉取本身不依赖代理组，避免首次启动时出现循环依赖。
+4. `direct-nameserver: system` 用来让直连流量复用容器系统解析器，适合订阅地址能被系统 DNS 正常解析、但默认公共 DoH/DoT 上游不可达的环境。
+5. `use` 表示把这些订阅里的节点全部并入当前策略组。
+6. `AUTO` 适合自动测速选节点，`PROXY` 适合手动切换。
+7. 如果三个不够用，继续按相同模式扩展 [config/mihomo/render-config.sh](config/mihomo/render-config.sh) 就行。
 
 改完后执行：
 

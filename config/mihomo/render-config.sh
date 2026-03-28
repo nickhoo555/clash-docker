@@ -32,15 +32,17 @@ dns:
   enable: true
   ipv6: true
   enhanced-mode: fake-ip
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
   nameserver:
-    - https://1.1.1.1/dns-query
-    - https://8.8.8.8/dns-query
-  fallback:
-    - tls://1.0.0.1:853
-    - tls://8.8.4.4:853
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  proxy-server-nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  direct-nameserver:
+    - system
 
 proxies:
   - name: MOCK
@@ -62,6 +64,7 @@ write_provider_block() {
     url: "${url}"
     path: ./providers/${provider}.yaml
     interval: 3600
+    proxy: DIRECT
     health-check:
       enable: true
       url: ${HEALTHCHECK_URL}

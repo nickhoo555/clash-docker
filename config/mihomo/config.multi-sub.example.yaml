@@ -24,15 +24,17 @@ dns:
   enable: true
   ipv6: true
   enhanced-mode: fake-ip
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
   nameserver:
-    - https://1.1.1.1/dns-query
-    - https://8.8.8.8/dns-query
-  fallback:
-    - tls://1.0.0.1:853
-    - tls://8.8.4.4:853
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  proxy-server-nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  direct-nameserver:
+    - system
 
 proxies:
   - name: MOCK
@@ -46,6 +48,7 @@ proxy-providers:
     url: "https://example.com/sub-a"
     path: ./providers/sub1.yaml
     interval: 3600
+    proxy: DIRECT
     health-check:
       enable: true
       url: https://www.gstatic.com/generate_204
@@ -56,6 +59,7 @@ proxy-providers:
     url: "https://example.com/sub-b"
     path: ./providers/sub2.yaml
     interval: 3600
+    proxy: DIRECT
     health-check:
       enable: true
       url: https://www.gstatic.com/generate_204
@@ -66,6 +70,7 @@ proxy-providers:
     url: "https://example.com/sub-c"
     path: ./providers/sub3.yaml
     interval: 3600
+    proxy: DIRECT
     health-check:
       enable: true
       url: https://www.gstatic.com/generate_204

@@ -1,4 +1,5 @@
 .env
+config/mihomo/config.yaml
 config/mihomo/*.db
 config/mihomo/*.mmdb
 config/mihomo/*.metadb

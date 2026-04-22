@@ -72,6 +72,29 @@ write_provider_block() {
 EOF
 }
 
+write_region_group() {
+  name="$1"
+  filter="$2"
+
+  cat >> "$CONFIG_FILE" <<EOF
+
+  - name: ${name}
+    type: url-test
+    url: ${HEALTHCHECK_URL}
+    interval: 300
+    tolerance: 50
+    use:
+EOF
+
+  for provider in $PROVIDERS; do
+    printf '      - %s\n' "$provider" >> "$CONFIG_FILE"
+  done
+
+  cat >> "$CONFIG_FILE" <<EOF
+    filter: "${filter}"
+EOF
+}
+
 if [ -n "${SUBSCRIPTION_1_URL:-}" ] || [ -n "${SUBSCRIPTION_2_URL:-}" ] || [ -n "${SUBSCRIPTION_3_URL:-}" ]; then
   cat >> "$CONFIG_FILE" <<EOF
 
@@ -101,6 +124,11 @@ proxy-groups:
     proxies:
       - AUTO
       - FALLBACK
+      - 香港
+      - 台湾
+      - 日本
+      - 新加坡
+      - 美国
       - MOCK
       - DIRECT
     use:
@@ -136,6 +164,12 @@ EOF
   for provider in $PROVIDERS; do
     printf '      - %s\n' "$provider" >> "$CONFIG_FILE"
   done
+
+  write_region_group "香港" "香港|HK|Hong Kong|🇭🇰"
+  write_region_group "台湾" "台湾|台灣|TW|Taiwan|🇹🇼"
+  write_region_group "日本" "日本|JP|Japan|东京|大阪|🇯🇵"
+  write_region_group "新加坡" "新加坡|SG|Singapore|狮城|🇸🇬"
+  write_region_group "美国" "美国|US|USA|United States|美[国國]|洛杉矶|硅谷|西雅图|纽约|🇺🇸"
 else
   cat >> "$CONFIG_FILE" <<EOF
 

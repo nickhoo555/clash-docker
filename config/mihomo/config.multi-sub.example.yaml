@@ -82,12 +82,72 @@ proxy-groups:
     proxies:
       - AUTO
       - FALLBACK
+      - 香港
+      - 台湾
+      - 日本
+      - 新加坡
+      - 美国
       - MOCK
       - DIRECT
     use:
       - sub1
       - sub2
       - sub3
+
+  - name: 香港
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - sub1
+      - sub2
+      - sub3
+    filter: "香港|HK|Hong Kong|🇭🇰"
+
+  - name: 台湾
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - sub1
+      - sub2
+      - sub3
+    filter: "台湾|台灣|TW|Taiwan|🇹🇼"
+
+  - name: 日本
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - sub1
+      - sub2
+      - sub3
+    filter: "日本|JP|Japan|东京|大阪|🇯🇵"
+
+  - name: 新加坡
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - sub1
+      - sub2
+      - sub3
+    filter: "新加坡|SG|Singapore|狮城|🇸🇬"
+
+  - name: 美国
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - sub1
+      - sub2
+      - sub3
+    filter: "美国|US|USA|United States|美[国國]|洛杉矶|硅谷|西雅图|纽约|🇺🇸"
 
   - name: AUTO
     type: url-test

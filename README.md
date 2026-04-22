@@ -69,6 +69,7 @@ Notes:
 5. Mihomo is already configured with permissive CORS for the dashboard, so zashboard can connect directly to the published API port.
 6. Subscription providers are rendered with `proxy: DIRECT` so their initial download does not deadlock on the default `MATCH,PROXY` rule before any nodes exist.
 7. Direct outbound DNS lookups explicitly use the container system resolver, while the default DNS upstreams are set to `doh.pub` and `dns.alidns.com` instead of Cloudflare/Google endpoints that may be unreachable in some networks.
+8. When subscriptions are configured, the rendered policy groups also include auto-testing region groups for `香港`, `台湾`, `日本`, `新加坡`, and `美国`, using common tags in node names to filter each region before selecting the fastest node.
 
 ## Validate config
 

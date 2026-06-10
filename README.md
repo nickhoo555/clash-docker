@@ -71,6 +71,55 @@ Notes:
 7. Direct outbound DNS lookups explicitly use the container system resolver, while the default DNS upstreams are set to `doh.pub` and `dns.alidns.com` instead of Cloudflare/Google endpoints that may be unreachable in some networks.
 8. When subscriptions are configured, the rendered policy groups also include auto-testing region groups for `香港`, `台湾`, `日本`, `新加坡`, and `美国`, using common tags in node names to filter each region before selecting the fastest node.
 
+
+## Traffic collector
+
+This stack includes a `traffic-collector` service for long-running traffic attribution. It polls the mihomo `/connections` API, stores per-connection upload/download deltas in SQLite, and persists the database on the host at `./data/traffic.sqlite3`.
+
+Optional `.env` settings:
+
+```env
+TRAFFIC_COLLECTOR_INTERVAL=5
+TRAFFIC_COLLECTOR_RETENTION_DAYS=30
+```
+
+Start or recreate the collector:
+
+```bash
+docker compose up -d traffic-collector
+```
+
+View collector logs:
+
+```bash
+docker compose logs -f traffic-collector
+```
+
+Print recent rankings:
+
+```bash
+docker compose exec traffic-collector python /app/collector.py report --hours 24 --by app
+docker compose exec traffic-collector python /app/collector.py report --hours 24 --by host
+docker compose exec traffic-collector python /app/collector.py report --hours 24 --by proxy
+docker compose exec traffic-collector python /app/collector.py report --hours 24 --by rule
+```
+
+Supported report dimensions are `app`, `host`, `destination`, `rule`, `proxy`, `chain`, `network`, `process`, `source`, and `inbound`.
+`app` prefers the process name returned by mihomo. In the current Docker proxy mode, process fields are usually empty, so the collector falls back to domain-based labels such as ChatGPT/OpenAI, GitHub Copilot, VS Code, Microsoft, and GitHub.
+
+To backfill app labels for existing rows after upgrading the collector:
+
+```bash
+docker compose exec traffic-collector python /app/collector.py reclassify
+```
+
+Notes:
+
+1. The collector samples active connections, so traffic from very short connections that open and close between two samples can be missed.
+2. On the first sample after startup, bytes already present on active connections are counted into the database.
+3. The current generated mihomo config ends with `MATCH,PROXY`, so `--by rule` becomes more useful after adding more detailed routing rules.
+4. Strict host process/app attribution needs host-side process accounting, or a transparent proxy/TUN deployment where mihomo can resolve process metadata.
+
 ## Validate config
 
 ```bash

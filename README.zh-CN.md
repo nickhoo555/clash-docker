@@ -69,6 +69,55 @@ http://192.168.31.10:8080/#/setup?hostname=192.168.31.10&port=19090&secret=your-
 4. 如果你修改了 `CONTROLLER_PORT`、`DASHBOARD_PORT` 或 `MIHOMO_SECRET`，记得同步更新 zashboard 初始化地址。
 5. 当前 mihomo 已开启适合面板访问的 CORS 配置，所以 zashboard 直接访问已发布的 API 端口即可。
 
+
+## 流量统计 collector
+
+这套 compose 里包含 `traffic-collector` 服务，用来做长期流量归因。它会定时拉取 mihomo 的 `/connections` API，把每条连接的上传/下载增量写入 SQLite，并把数据库持久化到宿主机的 `./data/traffic.sqlite3`。
+
+可选 `.env` 配置：
+
+```env
+TRAFFIC_COLLECTOR_INTERVAL=5
+TRAFFIC_COLLECTOR_RETENTION_DAYS=30
+```
+
+启动或重建 collector：
+
+```bash
+docker compose up -d traffic-collector
+```
+
+查看 collector 日志：
+
+```bash
+docker compose logs -f traffic-collector
+```
+
+查看最近一段时间排行：
+
+```bash
+docker compose exec traffic-collector python /app/collector.py report --hours 24 --by app
+docker compose exec traffic-collector python /app/collector.py report --hours 24 --by host
+docker compose exec traffic-collector python /app/collector.py report --hours 24 --by proxy
+docker compose exec traffic-collector python /app/collector.py report --hours 24 --by rule
+```
+
+`report` 支持按 `app`、`host`、`destination`、`rule`、`proxy`、`chain`、`network`、`process`、`source`、`inbound` 聚合。
+`app` 会优先使用 mihomo 返回的进程名；当前 Docker 代理模式下进程字段通常为空，所以 collector 会按域名把流量归类到 ChatGPT/OpenAI、GitHub Copilot、VS Code、Microsoft、GitHub 等应用/服务。
+
+如果升级 collector 后要把已有历史记录补上应用标签，执行：
+
+```bash
+docker compose exec traffic-collector python /app/collector.py reclassify
+```
+
+注意：
+
+1. collector 采样的是当前活跃连接，两次采样之间打开又关闭的极短连接可能统计不到。
+2. collector 启动后的第一次采样会把当时已经存在的活跃连接字节数计入数据库。
+3. 当前自动生成的 mihomo 配置最后是 `MATCH,PROXY`，所以 `--by rule` 在补充分流规则后会更有价值。
+4. 如果需要严格意义上的“宿主机进程/应用”流量统计，需要在宿主机侧用进程级工具，或改成能让 mihomo 获取进程信息的透明代理/TUN 部署方式。
+
 ## 校验配置
 
 ```bash

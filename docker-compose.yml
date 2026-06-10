@@ -1,6 +1,6 @@
 services:
   mihomo:
-    image: metacubex/mihomo:latest
+    image: docker.1panel.live/metacubex/mihomo:latest
     container_name: mihomo
     restart: unless-stopped
     entrypoint:
@@ -30,6 +30,29 @@ services:
       - ./config/zashboard/Caddyfile:/etc/caddy/Caddyfile:ro
     ports:
       - "${DASHBOARD_PORT:-8080}:80"
+    networks:
+      - clash_net
+
+  traffic-collector:
+    image: docker.1panel.live/library/python:3.12-alpine
+    container_name: mihomo-traffic-collector
+    restart: unless-stopped
+    depends_on:
+      - mihomo
+    command:
+      - python
+      - /app/collector.py
+      - collect
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MIHOMO_API_URL: http://mihomo:9090
+      MIHOMO_SECRET: ${MIHOMO_SECRET}
+      TRAFFIC_COLLECTOR_INTERVAL: ${TRAFFIC_COLLECTOR_INTERVAL:-5}
+      TRAFFIC_COLLECTOR_DB: /data/traffic.sqlite3
+      TRAFFIC_COLLECTOR_RETENTION_DAYS: ${TRAFFIC_COLLECTOR_RETENTION_DAYS:-30}
+    volumes:
+      - ./collector:/app:ro
+      - ./data:/data
     networks:
       - clash_net
 

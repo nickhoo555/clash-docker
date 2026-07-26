@@ -1,28 +1,28 @@
 services:
   mihomo:
-    image: docker.1panel.live/metacubex/mihomo:latest
-    container_name: mihomo
+    image: metacubex/mihomo:latest
+    container_name: clash-docker--mihomo
     restart: unless-stopped
-    entrypoint:
-      - /bin/sh
-      - /config/render-config.sh
+    command:
+      - -d
+      - /config
+      - -f
+      - /config/config.yaml
+      - -secret
+      - ${MIHOMO_SECRET}
     environment:
       TZ: ${TZ:-Asia/Shanghai}
-      MIHOMO_SECRET: ${MIHOMO_SECRET}
-      SUBSCRIPTION_1_URL: ${SUBSCRIPTION_1_URL:-}
-      SUBSCRIPTION_2_URL: ${SUBSCRIPTION_2_URL:-}
-      SUBSCRIPTION_3_URL: ${SUBSCRIPTION_3_URL:-}
     volumes:
       - ./config/mihomo:/config
     ports:
-      - "${MIXED_PORT:-7890}:7890"
+      - "${MIXED_PORT:-17890}:7890"
       - "${CONTROLLER_PORT:-9090}:9090"
     networks:
       - clash_net
 
   zashboard:
     image: ghcr.io/zephyruso/zashboard:latest
-    container_name: zashboard
+    container_name: clash-docker--zashboard
     restart: unless-stopped
     depends_on:
       - mihomo
@@ -34,8 +34,8 @@ services:
       - clash_net
 
   traffic-collector:
-    image: docker.1panel.live/library/python:3.12-alpine
-    container_name: mihomo-traffic-collector
+    image: library/python:3.12-alpine
+    container_name: clash-docker--mihomo-traffic-collector
     restart: unless-stopped
     depends_on:
       - mihomo

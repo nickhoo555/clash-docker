@@ -1,10 +1,13 @@
 .env
+.DS_Store
 config/mihomo/config.yaml
 config/mihomo/*.db
+config/mihomo/*.dat
 config/mihomo/*.mmdb
 config/mihomo/*.metadb
 config/mihomo/cache.db
 config/mihomo/providers/
+config/mihomo/proxies/
 config/mihomo/profiles/
 config/mihomo/ui/
 data/

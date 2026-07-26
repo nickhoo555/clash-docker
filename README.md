@@ -7,13 +7,22 @@ It does not use host networking.
 
 ## Files
 
-- `docker-compose.yml`: mihomo + zashboard services
+- `docker-compose.yml`: mihomo, zashboard, and traffic collector services
 - `.env`: local runtime variables
-- `config/mihomo/config.yaml`: generated mihomo runtime config
-- `config/mihomo/render-config.sh`: env-driven config renderer
+- `config/mihomo/config.yaml`: user-maintained complete Mihomo config
+- `config/mihomo/config.example.yaml`: minimal working config example
 - `config/zashboard/Caddyfile`: static zashboard site config
 
 ## Start
+
+Create the local files before the first start:
+
+```bash
+cp .env.example .env
+cp config/mihomo/config.example.yaml config/mihomo/config.yaml
+```
+
+Edit `.env` and `config/mihomo/config.yaml` as needed, then start:
 
 ```bash
 docker compose up -d
@@ -63,13 +72,10 @@ Notes:
 ## Important
 
 1. Change `MIHOMO_SECRET` in `.env` before exposing the API beyond localhost.
-2. The default startup path renders a bootable config with a single `MOCK` proxy when no subscription URL is provided.
-3. To use real nodes, set `SUBSCRIPTION_1_URL` to `SUBSCRIPTION_3_URL` in `.env` and recreate the `mihomo` container.
+2. `config.example.yaml` uses `DIRECT` only. Add your nodes, subscriptions, policy groups, and rules to `config.yaml`.
+3. Compose no longer reads or aggregates subscriptions and never generates or overwrites `config.yaml`.
 4. If you change `CONTROLLER_PORT`, `DASHBOARD_PORT`, or `MIHOMO_SECRET`, update the zashboard setup URL accordingly.
-5. Mihomo is already configured with permissive CORS for the dashboard, so zashboard can connect directly to the published API port.
-6. Subscription providers are rendered with `proxy: DIRECT` so their initial download does not deadlock on the default `MATCH,PROXY` rule before any nodes exist.
-7. Direct outbound DNS lookups explicitly use the container system resolver, while the default DNS upstreams are set to `doh.pub` and `dns.alidns.com` instead of Cloudflare/Google endpoints that may be unreachable in some networks.
-8. When subscriptions are configured, the rendered policy groups also include auto-testing region groups for `香港`, `台湾`, `日本`, `新加坡`, and `美国`, using common tags in node names to filter each region before selecting the fastest node.
+5. `MIHOMO_SECRET` from `.env` overrides `secret` in the YAML through Mihomo's command-line option.
 
 
 ## Traffic collector
@@ -117,13 +123,37 @@ Notes:
 
 1. The collector samples active connections, so traffic from very short connections that open and close between two samples can be missed.
 2. On the first sample after startup, bytes already present on active connections are counted into the database.
-3. The current generated mihomo config ends with `MATCH,PROXY`, so `--by rule` becomes more useful after adding more detailed routing rules.
+3. The example Mihomo config ends with `MATCH,PROXY`, so `--by rule` becomes more useful after adding more detailed routing rules.
 4. Strict host process/app attribution needs host-side process accounting, or a transparent proxy/TUN deployment where mihomo can resolve process metadata.
 
 ## Validate config
 
 ```bash
 docker compose up -d --force-recreate mihomo
+docker compose exec mihomo /mihomo -t -d /config -f /config/config.yaml
+```
+
+## Custom Mihomo config
+
+`config/mihomo/config.yaml` is the single source of truth. Edit it directly or replace it with an existing complete Clash/Mihomo YAML file.
+
+To work with the current Compose port mappings and zashboard, keep at least:
+
+```yaml
+mixed-port: 17890
+external-controller: 0.0.0.0:9090
+external-controller-cors:
+  allow-origins:
+    - "*"
+  allow-private-network: true
+```
+
+Nodes, `proxy-providers`, policy groups, DNS, and routing rules are entirely user-defined. Put provider files referenced with relative paths under `config/mihomo/`.
+
+Restart and validate after editing:
+
+```bash
+docker compose restart mihomo
 docker compose exec mihomo /mihomo -t -d /config -f /config/config.yaml
 ```
 

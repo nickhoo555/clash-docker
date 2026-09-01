@@ -9,10 +9,10 @@ It does not use host networking.
 
 - `docker-compose.yml`: mihomo, zashboard, and traffic collector services
 - `.env`: local runtime variables
-- `config/mihomo/config.yaml`: complete Mihomo config used in local mode
-- `config/mihomo/config.example.yaml`: minimal working config example
-- `config/mihomo/remote/config.yaml`: automatically managed remote config cache
-- `config/mihomo/start-mihomo.sh`: selects, validates, and refreshes local/remote config
+- `config/mihomo/configs/local/`: named local configs
+- `config/mihomo/configs/remote/`: named remote-subscription URL descriptors
+- `config/mihomo/configs/cache/`: automatically managed remote config caches
+- `config/mihomo/start-mihomo.sh`: resolves the selection, loads its type, and manages updates
 - `config/zashboard/Caddyfile`: static zashboard site config
 
 ## Start
@@ -28,13 +28,25 @@ Then select one config mode.
 Local config mode:
 
 ```bash
-cp config/mihomo/config.example.yaml config/mihomo/config.yaml
+cp config/mihomo/configs/local/default.example.yaml \
+  config/mihomo/configs/local/default.yaml
 ```
 
-Online config subscription mode: set a URL that directly returns a complete Mihomo YAML document in `.env`:
+```env
+MIHOMO_CONFIG=local:default
+```
+
+Remote config subscription mode:
+
+```bash
+cp config/mihomo/configs/remote/example.url.example \
+  config/mihomo/configs/remote/home.url
+```
+
+Change the only line in `home.url` to a URL that directly returns a complete Mihomo YAML document, then select it:
 
 ```env
-MIHOMO_CONFIG_URL="https://example.com/config.yaml"
+MIHOMO_CONFIG=remote:home
 MIHOMO_CONFIG_UPDATE_INTERVAL=3600
 ```
 
@@ -88,10 +100,11 @@ Notes:
 ## Important
 
 1. Change `MIHOMO_SECRET` in `.env` before exposing the API beyond localhost.
-2. An empty `MIHOMO_CONFIG_URL` selects local `config.yaml`; a non-empty value selects the online config and ignores the local file at runtime.
-3. A downloaded config is validated by Mihomo before replacing the cache. A download or validation failure falls back to the last valid cached config.
+2. `MIHOMO_CONFIG` must be `local:<name>` or `remote:<name>`; the type and name identify the active config.
+3. Each remote config has an independent cache. Download or validation failures fall back only to that name's last valid cache.
 4. If you change `CONTROLLER_PORT`, `DASHBOARD_PORT`, or `MIHOMO_SECRET`, update the zashboard setup URL accordingly.
 5. `MIHOMO_SECRET` and the controller address override YAML `secret` and `external-controller` through Mihomo command-line options.
+6. The old `config/mihomo/config.yaml` and `MIHOMO_CONFIG_URL` remain compatible, but new configs should use the named directory layout.
 
 
 ## Traffic collector
@@ -149,9 +162,40 @@ docker compose up -d --force-recreate mihomo
 docker compose exec mihomo /mihomo -t -d /config -f /config/.runtime-config.yaml
 ```
 
-## Custom Mihomo config
+## Multiple configs and switching
 
-In local mode, `config/mihomo/config.yaml` is the config source. Edit it directly or replace it with an existing complete Clash/Mihomo YAML file.
+The selector format is `<type>:<name>`:
+
+| Selector | Config source |
+| --- | --- |
+| `local:home` | `configs/local/home.yaml` |
+| `local:work` | `configs/local/work.yaml` |
+| `remote:airport-a` | `configs/remote/airport-a.url` |
+| `remote:airport-b` | `configs/remote/airport-b.url` |
+
+Only one config is active at a time. To switch, change `MIHOMO_CONFIG` in `.env` and recreate Mihomo:
+
+```bash
+docker compose up -d --force-recreate mihomo
+```
+
+You can also override the selection once without editing `.env`:
+
+```bash
+MIHOMO_CONFIG=remote:airport-b docker compose up -d --force-recreate mihomo
+```
+
+Names may contain only letters, numbers, `.`, `_`, and `-`. Adding a config requires only a corresponding file, not a startup-script change.
+
+## Local configs
+
+Put local configs at `config/mihomo/configs/local/<name>.yaml`. For example, `MIHOMO_CONFIG=local:work` resolves to:
+
+```text
+config/mihomo/configs/local/work.yaml
+```
+
+Local YAML files are ignored by Git by default to avoid committing nodes and credentials; `*.example.yaml` files remain trackable.
 
 To work with the current Compose port mappings and zashboard, keep at least:
 
@@ -173,18 +217,29 @@ docker compose restart mihomo
 docker compose exec mihomo /mihomo -t -d /config -f /config/.runtime-config.yaml
 ```
 
-## Online config subscription
+## Remote config subscriptions
 
-Online mode subscribes to the **complete Mihomo config**, not a `proxy-providers` node subscription. The URL must directly return a valid Mihomo YAML document.
+The remote type subscribes to the **complete Mihomo config**, not a `proxy-providers` node subscription. Each remote config has a same-named `.url` descriptor containing exactly one URL.
 
-Configure `.env`:
+For example, create `remote:home`:
 
-```env
-MIHOMO_CONFIG_URL="https://example.com/config.yaml"
-MIHOMO_CONFIG_UPDATE_INTERVAL=3600
+```bash
+cp config/mihomo/configs/remote/example.url.example \
+  config/mihomo/configs/remote/home.url
 ```
 
-Recreate Mihomo:
+Edit `home.url`:
+
+```text
+https://example.com/config.yaml
+```
+
+Then edit `.env` and recreate Mihomo:
+
+```env
+MIHOMO_CONFIG=remote:home
+MIHOMO_CONFIG_UPDATE_INTERVAL=3600
+```
 
 ```bash
 docker compose up -d --force-recreate mihomo
@@ -193,10 +248,11 @@ docker compose up -d --force-recreate mihomo
 How it works:
 
 1. On startup, the complete config is downloaded and checked with `/mihomo -t`.
-2. A valid config is cached at `config/mihomo/remote/config.yaml`; this directory is ignored by Git.
+2. A valid config is cached at `config/mihomo/configs/cache/home.yaml`; the cache directory is ignored by Git.
 3. It is downloaded again every `MIHOMO_CONFIG_UPDATE_INTERVAL` seconds. Changed, valid content triggers a Mihomo hot reload.
 4. Download failures or invalid updates leave the current config and cache untouched.
 5. Set the interval to `0` to update only when the container starts.
+6. Only the active remote config is refreshed periodically.
 
 The online config must use the container port `mixed-port: 7890` and keep `external-controller-cors` for zashboard. `external-controller` is overridden at startup to `0.0.0.0:9090`.
 

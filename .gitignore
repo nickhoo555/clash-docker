@@ -10,6 +10,10 @@ config/mihomo/providers/
 config/mihomo/proxies/
 config/mihomo/profiles/
 config/mihomo/remote/
+config/mihomo/configs/local/*.yaml
+!config/mihomo/configs/local/*.example.yaml
+config/mihomo/configs/remote/*.url
+config/mihomo/configs/cache/
 config/mihomo/.runtime-config.yaml
 config/mihomo/ui/
 data/

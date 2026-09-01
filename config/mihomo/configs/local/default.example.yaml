@@ -1,4 +1,4 @@
-# Copy this file to config.yaml, then replace it with or edit it as your
+# Copy this file to default.yaml, then replace it with or edit it as your
 # complete Mihomo configuration.
 #
 # docker-compose.yml overrides `secret` with MIHOMO_SECRET from .env.

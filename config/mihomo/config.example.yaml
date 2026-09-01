@@ -3,7 +3,7 @@
 #
 # docker-compose.yml overrides `secret` with MIHOMO_SECRET from .env.
 
-mixed-port: 17890
+mixed-port: 7890
 allow-lan: true
 bind-address: "*"
 mode: rule

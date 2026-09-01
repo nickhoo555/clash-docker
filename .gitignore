@@ -9,6 +9,8 @@ config/mihomo/cache.db
 config/mihomo/providers/
 config/mihomo/proxies/
 config/mihomo/profiles/
+config/mihomo/remote/
+config/mihomo/.runtime-config.yaml
 config/mihomo/ui/
 data/
 __pycache__/

@@ -9,20 +9,36 @@
 
 - `docker-compose.yml`：mihomo、zashboard 和流量采集服务定义
 - `.env`：本地运行时环境变量
-- `config/mihomo/config.yaml`：用户自己维护的完整 Mihomo 配置
+- `config/mihomo/config.yaml`：本地模式使用的完整 Mihomo 配置
 - `config/mihomo/config.example.yaml`：最小可运行配置示例
+- `config/mihomo/remote/config.yaml`：在线模式自动维护的远程配置缓存
+- `config/mihomo/start-mihomo.sh`：选择本地/在线配置、校验并定时更新
 - `config/zashboard/Caddyfile`：zashboard 静态站点配置
 
 ## 启动
 
-首次使用先创建本地配置：
+首次使用先创建环境变量文件：
 
 ```bash
 cp .env.example .env
+```
+
+然后选择一种配置模式。
+
+本地配置模式：
+
+```bash
 cp config/mihomo/config.example.yaml config/mihomo/config.yaml
 ```
 
-然后按需编辑 `.env` 和 `config/mihomo/config.yaml`，再启动：
+在线 Config 订阅模式：在 `.env` 中填写一个直接返回完整 Mihomo YAML 的地址：
+
+```env
+MIHOMO_CONFIG_URL="https://example.com/config.yaml"
+MIHOMO_CONFIG_UPDATE_INTERVAL=3600
+```
+
+最后启动：
 
 ```bash
 docker compose up -d
@@ -72,10 +88,10 @@ http://192.168.31.10:8080/#/setup?hostname=192.168.31.10&port=19090&secret=your-
 ## 注意事项
 
 1. 如果控制口需要暴露到本机之外，先修改 `.env` 里的 `MIHOMO_SECRET`。
-2. `config.example.yaml` 默认只使用 `DIRECT`，请自行把节点、订阅、策略组和规则写入 `config.yaml`。
-3. Compose 不再读取或聚合多个订阅，也不会自动生成或覆盖 `config.yaml`。
+2. `MIHOMO_CONFIG_URL` 为空时使用本地 `config.yaml`；非空时使用在线配置，本地文件不会参与运行。
+3. 在线配置下载后会先用 Mihomo 校验，校验成功才会替换缓存；下载或校验失败时会继续使用上一份有效缓存。
 4. 如果你修改了 `CONTROLLER_PORT`、`DASHBOARD_PORT` 或 `MIHOMO_SECRET`，记得同步更新 zashboard 初始化地址。
-5. `.env` 中的 `MIHOMO_SECRET` 会通过 Mihomo 命令行参数覆盖 YAML 中的 `secret`。
+5. `.env` 中的 `MIHOMO_SECRET` 和控制口地址会通过 Mihomo 命令行参数覆盖 YAML 中的 `secret` 与 `external-controller`。
 
 
 ## 流量统计 collector
@@ -130,17 +146,17 @@ docker compose exec traffic-collector python /app/collector.py reclassify
 
 ```bash
 docker compose up -d --force-recreate mihomo
-docker compose exec mihomo /mihomo -t -d /config -f /config/config.yaml
+docker compose exec mihomo /mihomo -t -d /config -f /config/.runtime-config.yaml
 ```
 
 ## 自定义 Mihomo 配置
 
-`config/mihomo/config.yaml` 是唯一配置源。你可以直接编辑它，也可以用已有的完整 Clash/Mihomo YAML 替换它。
+在本地模式中，`config/mihomo/config.yaml` 是配置源。你可以直接编辑它，也可以用已有的完整 Clash/Mihomo YAML 替换它。
 
 为配合当前 Compose 端口映射和 zashboard，配置至少应保留：
 
 ```yaml
-mixed-port: 17890
+mixed-port: 7890
 external-controller: 0.0.0.0:9090
 external-controller-cors:
   allow-origins:
@@ -154,8 +170,35 @@ external-controller-cors:
 
 ```bash
 docker compose restart mihomo
-docker compose exec mihomo /mihomo -t -d /config -f /config/config.yaml
+docker compose exec mihomo /mihomo -t -d /config -f /config/.runtime-config.yaml
 ```
+
+## 在线 Config 订阅
+
+在线模式订阅的是**完整的 Mihomo Config**，不是 `proxy-providers` 节点订阅。URL 必须直接返回一份可用的 Mihomo YAML 配置。
+
+在 `.env` 中配置：
+
+```env
+MIHOMO_CONFIG_URL="https://example.com/config.yaml"
+MIHOMO_CONFIG_UPDATE_INTERVAL=3600
+```
+
+然后重建 Mihomo：
+
+```bash
+docker compose up -d --force-recreate mihomo
+```
+
+工作方式：
+
+1. 启动时下载完整配置并执行 `/mihomo -t` 校验。
+2. 有效配置缓存到 `config/mihomo/remote/config.yaml`，该目录已被 Git 忽略。
+3. 按 `MIHOMO_CONFIG_UPDATE_INTERVAL` 秒重新下载；内容有变化且校验通过时自动热重载 Mihomo。
+4. 下载失败或新配置无效时保留当前配置，不会用坏配置覆盖缓存。
+5. 把更新间隔设为 `0` 可以只在容器启动时更新。
+
+在线配置必须使用容器内 `mixed-port: 7890`，并保留 zashboard 所需的 `external-controller-cors`。`external-controller` 会被启动参数统一覆盖为 `0.0.0.0:9090`。
 
 ## 后续可选：开启 TUN
 

@@ -3,15 +3,14 @@ services:
     image: metacubex/mihomo:latest
     container_name: clash-docker--mihomo
     restart: unless-stopped
-    command:
-      - -d
-      - /config
-      - -f
-      - /config/config.yaml
-      - -secret
-      - ${MIHOMO_SECRET}
+    entrypoint:
+      - /bin/sh
+      - /config/start-mihomo.sh
     environment:
       TZ: ${TZ:-Asia/Shanghai}
+      MIHOMO_SECRET: ${MIHOMO_SECRET}
+      MIHOMO_CONFIG_URL: ${MIHOMO_CONFIG_URL:-}
+      MIHOMO_CONFIG_UPDATE_INTERVAL: ${MIHOMO_CONFIG_UPDATE_INTERVAL:-3600}
     volumes:
       - ./config/mihomo:/config
     ports:

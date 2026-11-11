@@ -22,7 +22,7 @@ services:
       - clash_net
 
   zashboard:
-    image: ghcr.io/zephyruso/zashboard:latest
+    image: ghcr.io/zephyruso/zashboard:v3.30.0
     container_name: clash-docker--zashboard
     restart: unless-stopped
     depends_on:

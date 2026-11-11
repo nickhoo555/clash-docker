@@ -1,6 +1,6 @@
 services:
   mihomo:
-    image: metacubex/mihomo:latest
+    image: metacubex/mihomo:v1.19.34
     container_name: clash-docker--mihomo
     restart: unless-stopped
     entrypoint:
